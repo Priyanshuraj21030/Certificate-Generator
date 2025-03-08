@@ -6,14 +6,16 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { Award, Medal, CheckCircle2 } from "lucide-react";
 
-interface CertificateProps {
+export interface CertificateProps {
   studentName: string;
   registrationNumber: string;
+  courseName: string;
   eventName: string;
   issueDate: string;
   isAdmin: boolean;
   hideDownloadButton?: boolean;
   eventType?: string;
+  onEdit?: (field: string, value: string) => void;
   template?: {
     backgroundColor: string;
     borderColor: string;
@@ -28,11 +30,13 @@ interface CertificateProps {
 export default function Certificate({
   studentName,
   registrationNumber,
+  courseName,
   eventName,
   eventType = "Technical Workshop",
   issueDate,
   isAdmin,
   hideDownloadButton = false,
+  onEdit,
   template = {
     backgroundColor: "#ffffff",
     borderColor: "#1a365d",
@@ -77,7 +81,7 @@ export default function Certificate({
   };
 
   return (
-    <div className="relative" id={`certificate-${certificateId}`}>
+    <div className="relative" id="certificate">
       <div
         className="relative p-16 rounded-lg shadow-lg overflow-hidden"
         style={{
@@ -183,12 +187,11 @@ export default function Certificate({
 
           {/* Event Details */}
           <div className="space-y-4 max-w-2xl">
-            <p className="text-xl italic">
-              has actively participated in
-            </p>
+            <p className="text-xl italic">has actively participated in</p>
             <h3 className="text-3xl font-bold">{eventName}</h3>
             <p className="text-lg opacity-80">
-              demonstrating keen interest and valuable contribution throughout the event
+              demonstrating keen interest and valuable contribution throughout
+              the event
             </p>
           </div>
 
@@ -228,9 +231,7 @@ export default function Certificate({
                   className="border-t-2 pt-2"
                   style={{ borderColor: template.borderColor }}
                 >
-                  <p className="font-semibold text-lg">
-                    Head of Department
-                  </p>
+                  <p className="font-semibold text-lg">Head of Department</p>
                   <p className="text-sm opacity-70">Event Authority</p>
                 </div>
               </div>

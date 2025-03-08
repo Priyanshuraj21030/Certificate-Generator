@@ -66,22 +66,23 @@ interface CertificateTemplate {
   logoPosition: string;
 }
 
-interface CertificateData {
-  id: string;
+interface Certificate {
+  id: number;
   userId: number;
-  templateId: string;
   studentName: string;
   registrationNumber: string;
   courseName: string;
+  eventName: string;
   issueDate: string;
+  template: CertificateTemplate;
 }
 
 export default function CertificatesPage() {
   const [users, setUsers] = useState<User[]>([]);
-  const [certificates, setCertificates] = useState<CertificateData[]>([]);
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [templates, setTemplates] = useState<CertificateTemplate[]>([]);
   const [selectedCertificate, setSelectedCertificate] =
-    useState<CertificateData | null>(null);
+    useState<Certificate | null>(null);
   const [selectedTemplate, setSelectedTemplate] =
     useState<CertificateTemplate | null>(null);
   const [showPreview, setShowPreview] = useState(false);
@@ -111,7 +112,7 @@ export default function CertificatesPage() {
 
       // Load or initialize certificates
       const savedCertificates = localStorage.getItem("certificates");
-      let existingCertificates: CertificateData[] = savedCertificates
+      let existingCertificates: Certificate[] = savedCertificates
         ? JSON.parse(savedCertificates)
         : [];
 
@@ -124,10 +125,12 @@ export default function CertificatesPage() {
         .map((user: User) => ({
           id: Math.floor(Math.random() * 1000000),
           userId: user.id,
-          userName: user.name,
-          regNumber: user.regNumber,
-          issuedDate: new Date().toISOString(),
-          downloadUrl: `/certificates/${user.id}.pdf`,
+          studentName: user.name,
+          registrationNumber: user.regNumber,
+          courseName: "Course Name",
+          eventName: "Technical Workshop",
+          issueDate: new Date().toISOString(),
+          template: defaultTemplate,
         }));
 
       if (newCertificates.length > 0) {
@@ -222,7 +225,7 @@ export default function CertificatesPage() {
     });
   };
 
-  const handlePreview = (certificate: CertificateData) => {
+  const handlePreview = (certificate: Certificate) => {
     setSelectedCertificate(certificate);
     setShowPreview(true);
   };
@@ -299,12 +302,17 @@ export default function CertificatesPage() {
                       </TableCell>
                       <TableCell>
                         <Select
-                          value={certificate.templateId}
+                          value={certificate.template.id}
                           onValueChange={(value) => {
                             const updatedCertificates = certificates.map(
                               (cert) =>
                                 cert.id === certificate.id
-                                  ? { ...cert, templateId: value }
+                                  ? {
+                                      ...cert,
+                                      template:
+                                        templates.find((t) => t.id === value) ||
+                                        defaultTemplate,
+                                    }
                                   : cert
                             );
                             setCertificates(updatedCertificates);
@@ -417,13 +425,10 @@ export default function CertificatesPage() {
               studentName={selectedCertificate.studentName}
               registrationNumber={selectedCertificate.registrationNumber}
               courseName={selectedCertificate.courseName}
+              eventName={selectedCertificate.eventName}
               issueDate={selectedCertificate.issueDate}
               isAdmin={true}
-              template={
-                templates.find(
-                  (t) => t.id === selectedCertificate.templateId
-                ) || defaultTemplate
-              }
+              template={selectedCertificate.template}
             />
           )}
         </DialogContent>

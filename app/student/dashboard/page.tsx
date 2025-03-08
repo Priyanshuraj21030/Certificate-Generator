@@ -64,6 +64,7 @@ interface Certificate {
   eventName: string;
   eventType: string;
   issueDate: string;
+  courseName: string;
 }
 
 const container = {
@@ -88,6 +89,7 @@ export default function StudentDashboard() {
   const router = useRouter();
   const { toast } = useToast();
   const [showPreview, setShowPreview] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     // Check if user is logged in
@@ -119,6 +121,7 @@ export default function StudentDashboard() {
         eventName: "GeeksforGeeks Technical Workshop on Web Development",
         eventType: "Technical Workshop",
         issueDate: studentData.joinedDate,
+        courseName: "Web Development", // Add default course name
       };
 
       certificates.push(userCertificate);
@@ -142,99 +145,42 @@ export default function StudentDashboard() {
     if (!certificate) {
       toast({
         title: "Error",
-        description: "Certificate not found. Please refresh the page.",
+        description: "Certificate not found. Please try again later.",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      // Show loading toast
-      toast({
-        title: "Processing",
-        description: "Preparing your certificate for download...",
-      });
+      setIsDownloading(true);
 
-      // Find the certificate element - try both in preview and main view
-      let certificateElement = document.querySelector('[id^="certificate-"]');
-
-      // If certificate is not found in main view, check the dialog
+      // Get the certificate element
+      const certificateElement = document.getElementById("certificate");
       if (!certificateElement) {
-        certificateElement = document.querySelector(
-          '.dialog-content [id^="certificate-"]'
-        );
-      }
-
-      if (!certificateElement) {
-        // If still not found, try to find any element with Certificate component
-        certificateElement = document.querySelector('[class*="certificate"]');
-      }
-
-      if (!certificateElement) {
-        throw new Error(
-          "Certificate element not found. Please try viewing the certificate first."
-        );
-      }
-
-      // Update user status first
-      if (user) {
-        const savedUsers = localStorage.getItem("users");
-        const users: User[] = savedUsers ? JSON.parse(savedUsers) : [];
-
-        const updatedUsers = users.map((u) => {
-          if (u.id === user.id) {
-            return {
-              ...u,
-              hasDownloadedCertificate: true,
-              status: "Active",
-            };
-          }
-          return u;
+        toast({
+          title: "Error",
+          description:
+            "Certificate element not found on the page. Please refresh and try again.",
+          variant: "destructive",
         });
-
-        localStorage.setItem("users", JSON.stringify(updatedUsers));
-
-        const updatedUser = {
-          ...user,
-          hasDownloadedCertificate: true,
-          status: "Active",
-        };
-        localStorage.setItem("currentStudent", JSON.stringify(updatedUser));
-        setUser(updatedUser);
+        return;
       }
-
-      // Wait for any animations to complete
-      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Generate PDF with better quality settings
       const canvas = await html2canvas(certificateElement, {
         scale: 3, // Increased scale for better quality
         backgroundColor: "#ffffff",
         logging: false, // Disable logging
-        useCORS: true,
+        useCORS: true, // Enable CORS for images
         allowTaint: true,
-        onclone: (clonedDoc) => {
-          // Ensure the cloned element is visible
-          const clonedElement = clonedDoc.querySelector('[id^="certificate-"]');
-          if (clonedElement) {
-            (clonedElement as HTMLElement).style.display = "block";
-            (clonedElement as HTMLElement).style.width = "100%";
-            (clonedElement as HTMLElement).style.height = "auto";
-          }
-        },
+      }).catch((error) => {
+        console.error("Error generating canvas:", error);
+        throw new Error("Failed to generate certificate image");
       });
 
-      // Use A4 landscape dimensions
+      // Calculate dimensions
       const pageWidth = 297; // A4 width in mm
       const pageHeight = 210; // A4 height in mm
-
-      const pdf = new jsPDF({
-        orientation: "landscape",
-        unit: "mm",
-        format: [pageWidth, pageHeight],
-      });
-
-      // Calculate image dimensions to fit A4 while maintaining aspect ratio
       const imgRatio = canvas.width / canvas.height;
       let imgWidth = pageWidth;
       let imgHeight = pageWidth / imgRatio;
@@ -249,31 +195,58 @@ export default function StudentDashboard() {
       const x = (pageWidth - imgWidth) / 2;
       const y = (pageHeight - imgHeight) / 2;
 
-      const imgData = canvas.toDataURL("image/jpeg", 1.0);
-      pdf.addImage(imgData, "JPEG", x, y, imgWidth, imgHeight);
+      try {
+        const pdf = new jsPDF({
+          orientation: "landscape",
+          unit: "mm",
+          format: [pageWidth, pageHeight],
+        });
 
-      // Generate filename with timestamp
-      const timestamp = new Date().toISOString().split("T")[0];
-      const filename = `${certificate.studentName.replace(
-        /\s+/g,
-        "_"
-      )}_certificate_${timestamp}.pdf`;
+        const imgData = canvas.toDataURL("image/jpeg", 1.0);
+        pdf.addImage(imgData, "JPEG", x, y, imgWidth, imgHeight);
 
-      // Save the PDF
-      pdf.save(filename);
+        // Generate filename with timestamp
+        const timestamp = new Date().toISOString().split("T")[0];
+        const filename = `${certificate.studentName.replace(
+          /\s+/g,
+          "_"
+        )}_certificate_${timestamp}.pdf`;
 
-      toast({
-        title: "Success!",
-        description: "Your certificate has been downloaded successfully.",
-      });
+        // Save the PDF
+        pdf.save(filename);
+
+        // Update user's download status
+        if (user) {
+          const updatedUser = { ...user, hasDownloadedCertificate: true };
+          setUser(updatedUser);
+
+          // Update in localStorage
+          const users = JSON.parse(localStorage.getItem("users") || "[]");
+          const updatedUsers = users.map((u: User) =>
+            u.id === user.id ? { ...u, hasDownloadedCertificate: true } : u
+          );
+          localStorage.setItem("users", JSON.stringify(updatedUsers));
+          localStorage.setItem("currentStudent", JSON.stringify(updatedUser));
+        }
+
+        toast({
+          title: "Success!",
+          description: "Your certificate has been downloaded successfully.",
+        });
+      } catch (error) {
+        console.error("Error generating PDF:", error);
+        throw new Error("Failed to generate PDF file");
+      }
     } catch (error) {
       console.error("Error downloading certificate:", error);
       toast({
         title: "Download Failed",
         description:
-          "Please click 'View Certificate' first, then try downloading again.",
+          "There was an error downloading your certificate. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -580,13 +553,17 @@ export default function StudentDashboard() {
           </DialogHeader>
           {certificate && (
             <div className="p-4">
-              <div className="relative bg-white rounded-lg shadow-lg p-8">
+              <div
+                className="relative bg-white rounded-lg shadow-lg p-8"
+                id="certificate"
+              >
                 <Certificate
                   studentName={certificate.studentName}
                   registrationNumber={certificate.registrationNumber}
                   eventName={certificate.eventName}
                   eventType={certificate.eventType}
                   issueDate={certificate.issueDate}
+                  courseName={certificate.courseName}
                   isAdmin={false}
                   hideDownloadButton={true}
                 />
@@ -595,9 +572,19 @@ export default function StudentDashboard() {
                 <Button
                   onClick={handleDownloadCertificate}
                   className="bg-primary hover:bg-primary/90"
+                  disabled={isDownloading}
                 >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Certificate
+                  {isDownloading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Downloading...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Certificate
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
