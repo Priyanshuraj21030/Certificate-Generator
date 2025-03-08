@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, GraduationCap } from "lucide-react";
+import { ArrowLeft, GraduationCap, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -161,14 +161,9 @@ export default function LoginPage() {
         >
           <Link
             href="/"
-            className="inline-flex items-center text-sm text-gray-400 hover:text-primary transition-colors bg-white/5 px-4 py-2 rounded-full hover:bg-white/10"
+            className="inline-flex items-center text-sm text-gray-400 hover:text-primary transition-colors"
           >
-            <motion.div
-              whileHover={{ x: -4 }}
-              transition={{ type: "spring", stiffness: 400 }}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-            </motion.div>
+            <ArrowLeft className="w-4 h-4 mr-2" />
             Back to home
           </Link>
         </motion.div>
@@ -322,8 +317,8 @@ export default function LoginPage() {
                 <p className="text-sm text-gray-400">
                   Having trouble signing in?
                 </p>
-                <Link
-                  href="#"
+                <a
+                  href="mailto:priyanshiraj21030@gmail.com?subject=Support Request - Student Login"
                   className="text-sm text-primary hover:text-primary/80 transition-colors inline-block"
                 >
                   <motion.span
@@ -332,7 +327,7 @@ export default function LoginPage() {
                   >
                     Contact support
                   </motion.span>
-                </Link>
+                </a>
               </motion.div>
             </motion.div>
           </Card>
