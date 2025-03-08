@@ -46,11 +46,12 @@ import { Textarea } from "@/components/ui/textarea";
 interface User {
   id: number;
   name: string;
-  email: string;
   regNumber: string;
+  email: string;
   role: string;
   status: string;
   joinedDate: string;
+  hasDownloadedCertificate: boolean;
 }
 
 interface CertificateTemplate {
@@ -117,17 +118,16 @@ export default function CertificatesPage() {
       // Create certificates for users who don't have one
       const newCertificates = users
         .filter(
-          (user) =>
+          (user: User) =>
             !existingCertificates.some((cert) => cert.userId === user.id)
         )
-        .map((user) => ({
-          id: `cert-${user.id}`,
+        .map((user: User) => ({
+          id: Math.floor(Math.random() * 1000000),
           userId: user.id,
-          templateId: defaultTemplate.id,
-          studentName: user.name,
-          registrationNumber: user.regNumber,
-          courseName: "Professional Web Development",
-          issueDate: user.joinedDate,
+          userName: user.name,
+          regNumber: user.regNumber,
+          issuedDate: new Date().toISOString(),
+          downloadUrl: `/certificates/${user.id}.pdf`,
         }));
 
       if (newCertificates.length > 0) {
