@@ -32,7 +32,7 @@ A modern web application for generating, managing, and distributing digital cert
 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/certificate-generator.git
+git clone https://github.com/Priyanshuraj21030/Certificate-Generator
 ```
 
 2. Install dependencies
